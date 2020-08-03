@@ -12,12 +12,10 @@ import pandas
 
 #fastqfile = fastqfile1 #this will change everytime running it
 
-#outdir = "/Users/jeku7901/olwin_dowell_labs/2020_barcode_seq_run2/jupyter_R_analyses/alignment_notebook_JVK_barcode_seq_run_final_OUTPUT/"
+#outfile = "/Users/jeku7901/olwin_dowell_labs/2020_barcode_seq_run2/jupyter_R_analyses/alignment_notebook_JVK_barcode_seq_run_final_OUTPUT/"
 
-def score(fastqfile, outdir):
-    fastqroot = fastqfile.split(".")[-2]
-    fastqroot2 = fastqroot.split("/")[-1]    
-    wf = open(outdir+fastqroot2+"2020_Marys_scored_aligned.txt", "w")
+def score(fastqfile, outfile):
+    wf = open(outfile, "w")
     mid = '-----ATC--GAT--AAA--GGT--ACCCAGCTTTCTTGTACAAAGTGGTTGATCGATGCGATGTACGGGCCAGATATACGCGTATCTGAGGGGACTAGGGTGTGTTTAGGCGAAAAGCGG--------TGAGCGTCTGAACTCCAGTCAC'
     for record in SeqIO.parse(fastqfile, "fastq"):
             alignments = pairwise2.align.globalms(mid, record.seq, 5, -1,-5, -1)
@@ -37,8 +35,8 @@ if __name__ == "__main__":
 	n = len(sys.argv)
 	print(n)
 	if n < 2: 
-		print("python barcode_alignment.py <fastqfile> <outdir>")
+		print("python barcode_alignment.py <fastqfile> <outfile>")
 	else:
 		fastqfile = sys.argv[1]
-		outdir = sys.argv[2] 
-		score(fastqfile, outdir)
+		outfile = sys.argv[2] 
+		score(fastqfile, outfile)
