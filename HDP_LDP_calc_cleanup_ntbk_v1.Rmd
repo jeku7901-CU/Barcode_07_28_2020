@@ -1,0 +1,2071 @@
+```{r}
+merged.tab.all <- read.csv("~/olwin_dowell_labs/reanalysis_07_28_20/merged_table_all_081020"  )
+```
+
+# make histograms
+```{r}
+merged.tab.all.numeric <- apply(as.matrix.noquote(merged.tab.all),2,as.numeric)
+merged.tab.all.numeric <- merged.tab.all.numeric[,-1]
+
+for (i in 1:length(colnames(merged.tab.all.numeric)))
+{
+  hist(log10(merged.tab.all.numeric[,i]), breaks = 100, ylim = c(0,1000), main = colnames(merged.tab.all.numeric)[i] )
+}
+```
+
+### Boxplots with tidyr
+```{r}
+merged.tab.all.long <- gather(merged.tab.all, "condition", "measurement", -Var1)
+
+library(ggplot2)
+
+ggplot(merged.tab.all.long, aes(x=condition, y=measurement)) + geom_boxplot()
+```
+
+## Remove bias
+```{r}
+pruned.merged.tab.df1.bias <- merged.tab.all[which(merged.tab.all$DF1.R1.SR1 < 20),]
+#pruned.merged.tab.df1.bias <- pruned.merged.tab.df1.bias[which(pruned.merged.tab.df1.bias$DF1.R2.SR3.TR1 < 20),]
+#pruned.merged.tab.df1.bias <- pruned.merged.tab.df1.bias[which(pruned.merged.tab.df1.bias$DF1.R2.SR3.TR2 < 20),]
+```
+
+```{r}
+unique.with.all.bias <- colSums(merged.tab.all[,2:36] != 0)
+total.seq.with.all.bias <- colSums(as.matrix(merged.tab.all[,2:36]))
+
+
+unique.without.df1.bias <- colSums(pruned.merged.tab.df1.bias[,2:36] != 0)
+total.seq.without.df1.bias <- colSums(as.matrix(pruned.merged.tab.df1.bias[,2:36]))
+
+
+meta.seq <- as.data.frame(cbind(unique.without.df1.bias,total.seq.without.df1.bias,unique.with.all.bias,total.seq.with.all.bias))
+
+View(meta.seq)
+```
+
+```{r}
+bias.barcodes <- list()
+for (i in 1:nrow(pruned.merged.tab.df1.bias))
+{
+  if(length(as.vector(which(as.numeric(pruned.merged.tab.df1.bias[i,]) > 100))) > 3) 
+    {bias.barcodes[[i]] <- i} 
+}
+
+bias.barcodesdf <- as.data.frame(unlist(bias.barcodes)) ## There are 90 barcodes that appear as >100 in more than 3 samples
+  
+
+for (i in 1:90)
+{
+  pruned.merged.tab.all <- pruned.merged.tab.df1.bias[-as.numeric(bias.barcodesdf$`unlist(bias.barcodes)`[i]),]
+}
+
+#For calculating percent bias
+unique.without.all.bias <- colSums(pruned.merged.tab.all != 0)
+total.seq.without.all.bias <- colSums(as.matrix(pruned.merged.tab.all[,2:36]))
+
+write.csv(pruned.merged.tab.all, "~/olwin_dowell_labs/reanalysis_07_28_20/pruned_merged_table_all.csv", row.names = F)
+
+```
+
+```{r}
+merged.tab.pruned.all.numeric <- apply(as.matrix.noquote(pruned.merged.tab.all),2,as.numeric)
+merged.tab.pruned.all.numeric <- merged.tab.pruned.all.numeric[,-1]
+```
+
+```{r}
+#row.names(merged.tab.pruned.all.numeric) <- row.names(pruned.merged.tab.all)
+ll <- gather(pruned.merged.tab.all, "condition", "measurement", -Var1)
+
+library(ggplot2)
+
+ggplot(ll, aes(x=condition, y=measurement)) + geom_boxplot()
+```
+
+```{r}
+for (i in 1:length(colnames(merged.tab.all.numeric)))
+{
+  onecolumn <- merged.tab.all.numeric[,i]
+  onecolumn <- onecolumn[which(onecolumn != 0)]
+  col.name <- colnames(merged.tab.all.numeric)[i]
+  tmp1 <- list()
+  tmp2 <- list()
+      for (j in 1:length(onecolumn))
+      {
+        tmp1 <- rep(as.character(merged.tab.all$Var1[j]), onecolumn[j])
+        tmp2 <- append(tmp2, tmp1) # this is not appending like we want
+        print(head(tmp2))
+
+        #tmp1 <- sample(tmp1$`rep.seq.vec$rep.seq`, 2400, replace = T)
+      }
+      #pruned.longform <- as.data.frame(unlist(tmp2))
+      #colnames(pruned.longform) <- "repeatedseq" 
+
+}
+```
+
+#### doing it the old fashioned slow way 
+```{r}
+#--------------------------DF1------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$DF1.R1.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$DF1.R1.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+DF1.R1.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(DF1.R1.SR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$DF1.R2.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$DF1.R2.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+DF1.R2.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(DF1.R2.SR3.TR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$DF1.R2.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$DF1.R2.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+DF1.R2.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(DF1.R2.SR3.TR2.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R1.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R1.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R1.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R1.SR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R2.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R2.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R2.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R2.SR3.TR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R2.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R2.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R2.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R2.SR3.TR2.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R3.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R3.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R3.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R3.SR3.TR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R3.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R3.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R3.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R3.SR3.TR2.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R4.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R4.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R4.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R4.SR3.TR1.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R4.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R4.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R4.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R4.SR3.TR2.pruned.longform) <- "repeatedseq" 
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R5.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R5.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R5.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R5.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.90.R5.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.90.R5.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.90.R5.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.90.R5.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R1.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R1.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R1.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R1.SR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R2.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R2.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R2.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R2.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R3.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R3.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R3.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R3.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R4.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R4.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R4.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R4.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R4.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R4.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R4.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R4.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R5.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R5.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R5.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R5.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R5.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R5.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R5.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R5.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R6.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R6.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R6.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R6.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R6.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R6.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R6.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R6.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R7.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R7.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R7.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R7.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$y.30.R7.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$y.30.R7.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+y.30.R7.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(y.30.R7.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R1.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R1.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R1.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R1.SR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R2.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R2.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R2.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R2.SR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R3.SR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R3.SR1[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R3.SR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R3.SR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R4.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R4.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R4.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R4.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R5.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R5.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R5.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R5.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R6.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R6.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R6.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R6.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R7.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R7.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R7.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R7.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R8.SR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R8.SR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R8.SR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R8.SR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R9.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R9.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R9.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R9.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R9.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R9.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R9.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R9.SR3.TR2.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R10.SR3.TR1))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R10.SR3.TR1[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R10.SR3.TR1.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R10.SR3.TR1.pruned.longform) <- "repeatedseq"
+
+#--------------------------------------------------
+tmp1 <- list()
+tmp2 <- list()
+for (i in 1:length(pruned.merged.tab.all$a.30.R10.SR3.TR2))
+{
+  tmp1 <- rep(as.character(pruned.merged.tab.all$seq[i]), pruned.merged.tab.all$a.30.R10.SR3.TR2[i])
+  tmp2[[i]] <- tmp1
+}
+a.30.R10.SR3.TR2.pruned.longform <- as.data.frame(unlist(tmp2))
+colnames(a.30.R10.SR3.TR2.pruned.longform) <- "repeatedseq"
+```
+
+```{r}
+#------------------------------------------------------------------
+rep.seq.vec <- DF1.R1.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            DF1.R1.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+            
+#------------------------------------------------------------------
+rep.seq.vec <- DF1.R2.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            DF1.R2.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- DF1.R2.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            DF1.R2.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R1.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R1.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R2.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R2.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R2.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R2.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R3.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R3.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R3.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R3.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R4.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R4.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R4.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R4.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R5.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R5.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.90.R5.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.90.R5.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R1.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R1.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R2.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R2.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R3.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R3.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R4.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R4.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R4.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R4.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R5.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+            y.30.R5.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+            
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R5.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           y.30.R5.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R6.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           y.30.R6.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R6.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           y.30.R6.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R7.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           y.30.R7.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+
+#------------------------------------------------------------------
+rep.seq.vec <- y.30.R7.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           y.30.R7.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R1.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R1.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R2.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R2.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R3.SR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 2400, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 2400, ncol = 500)
+      for (j in 1:2400)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R3.SR1.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R4.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R4.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R5.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R5.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R6.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R6.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R7.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R7.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R8.SR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 55000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 55000, ncol = 500)
+      for (j in 1:55000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R8.SR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R9.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R9.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R9.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R9.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R10.SR3.TR1.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R10.SR3.TR1.bootstrap.pruned <- tmp1 # Change here for each sample
+           
+#------------------------------------------------------------------
+rep.seq.vec <- a.30.R10.SR3.TR2.pruned.longform # Change here for each sample
+colnames(rep.seq.vec) <- "rep.seq"
+tmp1.list <- list()
+for (i in 1:500)
+{
+  rep.seq.df <- as.data.frame(rep.seq.vec$rep.seq)
+  tmp1 <- sample(rep.seq.df$`rep.seq.vec$rep.seq`, 9000, replace = T)
+  tmp1.list[[i]] <- tmp1
+}
+      tmp1.df <- data.frame()
+      tmp2.df <- matrix(nrow = 9000, ncol = 500)
+      for (j in 1:9000)
+      {
+          for (i in 1:500)
+          {
+          tmp1.df <- as.data.frame(unlist(tmp1.list[[i]]))
+          tmp2.df[j,i] <- as.character(tmp1.df[j,1])
+          }
+      }
+            length.unique.list <- list()
+            tab.1 <- data.frame()
+            freq.tmp <- data.frame()
+            tmp2.tab <- list()
+            for (i in 1:500)
+            {
+              tab.1 <- as.data.frame(table(tmp2.df[,i]))
+              freq.tmp <- tab.1$Freq
+              length.unique.list[i] <- length(tab.1[,1])
+              tmp2.tab[[i]] <- freq.tmp 
+            }
+            collength = 5 
+            cutoff.val = 50
+            tmp1 <- matrix(ncol = collength, nrow = 500) 
+                        for (i in 1:500)
+                        {
+                          tmp1[i,1] <- length(which(tmp2.tab[[i]] > cutoff.val)) #HDP initial
+                          tmp1[i,2] <- length(which(tmp2.tab[[i]] < cutoff.val & tmp2.tab[[i]] > 0)) #LDP initial
+                          tmp1[i,3] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]>cutoff.val]) #HDP final
+                          tmp1[i,4] <- sum(tmp2.tab[[i]][tmp2.tab[[i]]<cutoff.val]) #LDP final
+                          tmp1[i,5] <- as.numeric(unlist(length.unique.list[[i]]))
+                        }
+           a.30.R10.SR3.TR2.bootstrap.pruned <- tmp1 # Change here for each sample
+
+colnames(DF1.R1.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(DF1.R2.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(DF1.R2.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R1.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R2.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R2.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R3.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R3.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R4.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R4.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R5.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.90.R5.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R1.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R2.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R3.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R4.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R4.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R5.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R5.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R6.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R6.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R7.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(y.30.R7.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R1.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R2.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R3.SR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R4.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R5.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R6.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R7.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R8.SR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R9.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R9.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R10.SR3.TR1.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')
+colnames(a.30.R10.SR3.TR2.bootstrap.pruned) <- c("HDP.initial",'LDP.initial','HDP.final','LDP.final', 'total.unique')

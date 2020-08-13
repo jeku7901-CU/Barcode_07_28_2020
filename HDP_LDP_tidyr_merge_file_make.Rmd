@@ -1,0 +1,28 @@
+```{r}
+#install.packages("tidyr")
+library(tidyr)
+```
+
+```{r}
+sample.list <- read.delim("~/olwin_dowell_labs/reanalysis_07_28_20/sample_list.txt")
+sample.list <- sample.list[-36,]
+sample.list$pathandfile <- paste(sample.list$path, sample.list$filename, sep="")
+
+
+name.list <- unlist(as.vector(sample.list$objectname))
+for (i in 1:length(sample.list$pathandfile)) 
+{ 
+  tmp <- read.delim(sample.list$pathandfile[i], sep = " ") 
+  colnames(tmp) <- c("Var1", name.list[i])
+  if (i == 1) {df <- as.data.frame(tmp)}
+  else {df <- merge(df, tmp, by = "Var1", all = TRUE)}
+}
+
+df[is.na(df)] <- 0
+
+unique <- colSums(df != 0)
+total.seq <- colSums(as.matrix(df[,2:36]))
+
+write.csv(df, "~/olwin_dowell_labs/reanalysis_07_28_20/merged_table_all_081020", row.names = F)
+```
+

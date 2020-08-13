@@ -1,0 +1,34 @@
+```{r}
+aligned.file <- read.delim("/Users/jeku7901/olwin_dowell_labs/reanalysis_07_28_20/outputs_08042020/seqrun_1python_aligned/Olwin-688-M1_S1_L001_R1_001_python_aligned.txt", header = F)
+
+names(aligned.file) <- c("readname","read.seq","alignment.template","best.alignment","N_alignment","score","dontknow1","dontknow2") #629 seems to be is perfect score
+aligned.file.perfect.score <- aligned.file[which(aligned.file$score == 629), 1:6] #can change score cutoff
+
+aligned.file.perfect.score.seqs <- as.data.frame(aligned.file.perfect.score$read.seq)
+aligned.file.perfect.score.names <- as.data.frame(aligned.file.perfect.score$readname)
+output.matrix <- matrix(nrow = length(aligned.file.perfect.score.seqs$`aligned.file.perfect.score$read.seq`), ncol = 4)
+for (i in 1:length(aligned.file.perfect.score.seqs$`aligned.file.perfect.score$read.seq`))
+{
+  char.vec <- as.character(aligned.file.perfect.score.seqs$`aligned.file.perfect.score$read.seq`[i])
+  pcr.barcode <- substr(char.vec, 122, 129)
+  var1 <- substr(char.vec, 1, 5)
+  var2 <- substr(char.vec, 9, 10)
+  var3 <- substr(char.vec, 14, 15)
+  var4 <- substr(char.vec, 19, 20)
+  var5 <- substr(char.vec, 24, 25)
+  biobarcode <- paste(var1, var2, var3, var4, var5, sep = "")
+  readname.tmp <- as.character(aligned.file.perfect.score.names$`aligned.file.perfect.score$readname`[i])
+  output.matrix[i, ] <- c(readname.tmp, char.vec, biobarcode, pcr.barcode)
+}
+colnames(output.matrix) <- c("readname", "read", "biobarcode", "UMI")
+
+##Pulling out PCR duplicates
+
+df <- as.data.frame(output.matrix)
+df$barcodes.pasted <- paste(df$biobarcode, df$UMI, sep="")
+df.nondups.unique <- df[!duplicated(df[,'barcodes.pasted',]),]
+
+#biobarcode.rep.number <- table(df.nondups.unique$biobarcode)
+#biobarcode.rep.number.df <- as.data.frame(biobarcode.rep.number)
+```
+
